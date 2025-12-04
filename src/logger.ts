@@ -4,36 +4,15 @@ import { formatTimestamp } from './formatters.js';
 import type { CreateLoggerOptions, LogEntry, Logger, LogLevel } from './types.js';
 import { LEVEL_EMOJIS, LEVEL_PRIORITY } from './types.js';
 
-// Default console transport instance (lazy initialized)
 let defaultTransport: ReturnType<typeof consoleTransport> | null = null;
 
 function getDefaultTransport() {
-	if (!defaultTransport) {
-		defaultTransport = consoleTransport();
-	}
+	if (!defaultTransport) defaultTransport = consoleTransport();
 	return defaultTransport;
 }
 
 /**
- * Create a logger instance
- *
- * @example
- * // Anonymous logger
- * const log = createLogger();
- * log.info('Application started');    // 📌 [INFO] Application started
- * log.info('GET https://api.com');    // 🔗 [INFO] GET https://api.com
- *
- * @example
- * // With source
- * const log = createLogger({ source: 'DatabaseService' });
- * log.info('Connected');
- * // Output: 10:30:00 📌 [INFO ] [DatabaseService] Connected
- *
- * @example
- * // With custom emoji (overrides default behavior)
- * const log = createLogger({ source: 'DatabaseService', emoji: '🗄️' });
- * log.info('Connected');
- * // Output: 10:30:00 🗄️ [INFO ] [DatabaseService] Connected
+ * Create a logger instance with optional source name and custom emoji.
  */
 export function createLogger(options: CreateLoggerOptions = {}): Logger {
 	const { source, emoji } = options;

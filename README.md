@@ -1,6 +1,6 @@
 # @hautomation-labs/logger
 
-Lightweight TypeScript logger with emoji support.
+Lightweight TypeScript logger with emoji support for Node.js and React Native.
 
 ## Install
 
@@ -16,19 +16,13 @@ import { createLogger } from '@hautomation-labs/logger';
 
 const log = createLogger({ source: 'MyService' });
 
-log.info('Starting up');              // 📌 [INFO ] [MyService] Starting up
-log.info('GET https://api.com');      // 🔗 [INFO ] [MyService] GET https://api.com
-log.debug('Details', { foo: 'bar' }); // 🐛 [DEBUG] [MyService] Details {"foo":"bar"}
-log.error('Something broke');         // ❌ [ERROR] [MyService] Something broke
+log.info('Starting up');           // 📌 [INFO ] [MyService] Starting up
+log.info('GET https://api.com');   // 🔗 [INFO ] [MyService] GET https://api.com
+log.debug('Details', { id: 123 }); // 🐛 [DEBUG] [MyService] Details {"id":123}
+log.error('Something broke');      // ❌ [ERROR] [MyService] Something broke
 ```
 
-## Log Levels
-
-| Level | Emoji | Level | Emoji |
-|-------|-------|-------|-------|
-| trace | 🔍 | warn  | ⚠️ |
-| debug | 🐛 | error | ❌ |
-| info  | 📌 (🔗 with URL) | fatal | 💀 |
+**Levels:** `trace` 🔍 · `debug` 🐛 · `info` 📌 · `warn` ⚠️ · `error` ❌ · `fatal` 💀
 
 ## Configuration
 
@@ -36,24 +30,15 @@ log.error('Something broke');         // ❌ [ERROR] [MyService] Something broke
 import { configure, OutputFormat, TimestampFormat } from '@hautomation-labs/logger';
 
 configure({
-  minLevel: 'info',                    // trace | debug | info | warn | error | fatal
-  format: OutputFormat.JSON,           // PRETTY (default) | JSON
+  minLevel: 'info',                     // trace | debug | info | warn | error | fatal
+  format: OutputFormat.JSON,            // PRETTY (default) | JSON
   timestampFormat: TimestampFormat.ISO, // TIME_ONLY (default) | ISO | NONE
-  showEmoji: false,                    // true (default) | false
+  showEmoji: false,
+  enabled: false,
 });
-```
 
-## Custom Emoji
-
-```typescript
-// Static emoji
+// Custom emoji per logger
 const log = createLogger({ source: 'DB', emoji: '🗄️' });
-
-// Dynamic emoji
-const log = createLogger({
-  source: 'Api',
-  emoji: (message, level) => level === 'error' ? '💥' : '🌐'
-});
 ```
 
 ## Transports
@@ -72,13 +57,14 @@ configure({
 configure({
   transports: [{
     write(entry) {
-      myService.send(entry);
+      // entry: { timestamp, level, source, emoji, message, data }
+      myExternalService.send(entry);
     }
   }]
 });
 ```
 
-## Error Handling
+## Utilities
 
 ```typescript
 import { extractErrorMessage } from '@hautomation-labs/logger';

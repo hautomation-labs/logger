@@ -9,7 +9,9 @@
       "Bash(yarn tsx:*)",
       "Bash(yarn lint:fix:*)",
       "Bash(yarn lint:*)",
-      "Bash(yarn install:*)"
+      "Bash(yarn install:*)",
+      "Bash(yarn test:*)",
+      "Bash(git describe:*)"
     ],
     "deny": [],
     "ask": []
