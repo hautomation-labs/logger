@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2] - 2026-01-17
+
+### Fixed
+- Error objects now serialize properly in JSON output (captures `name`, `message`, `stack` and custom properties)
+
 ## [1.0.1] - 2025-12-04
 
 ### Added
