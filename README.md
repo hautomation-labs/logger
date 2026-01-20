@@ -76,6 +76,58 @@ try {
 }
 ```
 
+## CLI Utilities
+
+Terminal spinners and progress bars with TTY detection (falls back gracefully in CI/pipes).
+
+```typescript
+import { createSpinner, createProgressBar } from '@hautomation-labs/logger';
+
+// Spinner
+const spinner = createSpinner('Loading...');
+spinner.start();
+// ... do work ...
+spinner.succeed('Done!');  // Also: .fail(), .warn(), .info()
+
+// Progress bar
+const bar = createProgressBar({ total: 100 });
+for (let i = 0; i <= 100; i++) {
+  bar.update(i, `Processing item ${i}`);
+}
+bar.stop('Complete!');
+```
+
+## Warning Aggregator
+
+Collect warnings during batch operations and emit a summary instead of flooding logs.
+
+```typescript
+import { createWarningAggregator, createLogger } from '@hautomation-labs/logger';
+
+const log = createLogger({ source: 'Batch' });
+const warnings = createWarningAggregator({ maxExamples: 3 });
+
+// During processing:
+warnings.add('image-size', "Size '512x512' not supported", 'file1.png');
+warnings.add('image-size', "Size '512x512' not supported", 'file2.png');
+
+// After batch:
+warnings.flush(log);
+// Output: ⚠️ image-size: 2 occurrences (e.g., Size '512x512' not supported) [file1.png, file2.png]
+```
+
+## Display Formatters
+
+```typescript
+import { formatCost, formatCount, formatPercent, formatDuration } from '@hautomation-labs/logger';
+
+formatCost(0.00423);       // "$0.0042"
+formatCost(1.5);           // "$1.50"
+formatCount(42, 100);      // "[42/100]"
+formatPercent(42, 100);    // "42%"
+formatDuration(150000);    // "2m 30s"
+```
+
 ## License
 
 MIT

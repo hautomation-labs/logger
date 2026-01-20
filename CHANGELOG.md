@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.0] - 2026-01-20
+
+### Added
+- CLI utilities: `createSpinner()`, `createProgressBar()`, `createTaskSpinner()` with TTY detection
+- Warning aggregator: `createWarningAggregator()` for batch warning collection
+- Display formatters: `formatCost()`, `formatCount()`, `formatPercent()`, `formatDuration()`, `formatElapsed()`
+- Tests for new modules (formatting, warning-aggregator)
+
+### Changed
+- Updated documentation (README.md, CLAUDE.md) to reflect new features
+
 ## [1.0.2] - 2026-01-17
 
 ### Fixed

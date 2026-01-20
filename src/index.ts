@@ -14,3 +14,31 @@ export { formatData, formatJson, formatPretty, formatTimestamp } from './formatt
 // Types
 export type { LogEntry, Logger, LoggerConfig, LogLevel, LogTransport } from './types.js';
 export { OutputFormat, TimestampFormat } from './types.js';
+
+// CLI utilities
+export {
+	CLOCK_FRAMES,
+	createProgressBar,
+	createSpinner,
+	createTaskSpinner,
+	DOTS_FRAMES,
+	formatElapsed,
+	HOURGLASS_FRAMES,
+	type ProgressBar,
+	type ProgressBarOptions,
+	type Spinner,
+	type SpinnerOptions,
+	type TaskSpinner,
+	type TaskSpinnerOptions,
+} from './cli/index.js';
+
+// Warning aggregation
+export {
+	type AggregatedWarning,
+	createWarningAggregator,
+	type WarningAggregator,
+	type WarningAggregatorOptions,
+} from './aggregation/index.js';
+
+// Display formatters
+export { formatCost, formatCount, formatDuration, formatPercent } from './formatting/index.js';

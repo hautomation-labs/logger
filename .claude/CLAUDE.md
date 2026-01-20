@@ -20,15 +20,26 @@ yarn build && yarn npm publish --access public
 
 ```
 src/
-├── index.ts          # Public exports
-├── logger.ts         # createLogger() factory
-├── config.ts         # configure(), getConfig(), resetConfig()
-├── types.ts          # Interfaces, enums, LEVEL_EMOJIS, LEVEL_PRIORITY
-├── formatters.ts     # formatPretty(), formatJson(), formatTimestamp()
+├── index.ts           # Public exports
+├── logger.ts          # createLogger() factory
+├── config.ts          # configure(), getConfig(), resetConfig()
+├── types.ts           # Interfaces, enums, LEVEL_EMOJIS, LEVEL_PRIORITY
+├── formatters.ts      # formatPretty(), formatJson(), formatTimestamp()
 ├── extract-message.ts # extractErrorMessage()
-└── transports/
-    ├── console.ts    # consoleTransport()
-    └── file.ts       # fileTransport() (Node.js only)
+├── transports/
+│   ├── console.ts     # consoleTransport()
+│   └── file.ts        # fileTransport() (Node.js only)
+├── cli/
+│   ├── spinner.ts     # createSpinner() - animated terminal spinner
+│   ├── progress-bar.ts # createProgressBar() - terminal progress bar
+│   ├── task-spinner.ts # createTaskSpinner() - spinner with state tracking
+│   └── elapsed.ts     # formatElapsed() - time formatting
+├── aggregation/
+│   └── warning-aggregator.ts # createWarningAggregator() - batch warning collection
+└── formatting/
+    ├── cost.ts        # formatCost() - dollar amounts
+    ├── count.ts       # formatCount(), formatPercent()
+    └── duration.ts    # formatDuration() (re-exports formatElapsed)
 ```
 
 ## Key Types
