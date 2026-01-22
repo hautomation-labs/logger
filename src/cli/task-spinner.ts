@@ -3,10 +3,15 @@
  *
  * Provides a higher-level API over createSpinner for tasks that have
  * distinct states (e.g., batch processing workflows).
+ *
+ * Features:
+ * - Real-time elapsed time updates
+ * - State label display
+ * - Clean visual feedback with ASCII art animation
  */
 
 import { formatElapsed } from './elapsed.js';
-import { createSpinner, HOURGLASS_FRAMES, type SpinnerOptions } from './spinner.js';
+import { createSpinner, BAR_FRAMES, type SpinnerOptions } from './spinner.js';
 
 export interface TaskSpinnerOptions extends Omit<SpinnerOptions, 'showElapsed'> {
 	/**
@@ -51,6 +56,11 @@ export interface TaskSpinner {
 /**
  * Create a task spinner for long-running operations with state tracking
  *
+ * Features:
+ * - Real-time elapsed time that updates continuously
+ * - State label that updates when `update()` is called
+ * - Smooth braille bar animation
+ *
  * @example
  * // Define state labels for your workflow
  * const stateLabels = {
@@ -69,32 +79,68 @@ export interface TaskSpinner {
  * spinner.succeed(120000);
  */
 export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {}): TaskSpinner {
-	const { stateLabels = {}, frames = HOURGLASS_FRAMES, interval = 500, ...rest } = options;
+	const { stateLabels = {}, frames = BAR_FRAMES, interval = 80, ...rest } = options;
 
+	let currentState = '';
+	let startTimeMs = 0;
+
+	// Build display text with current state and real-time elapsed
+	const buildText = (): string => {
+		const stateText = currentState ? (stateLabels[currentState] ?? currentState) : '';
+		const elapsed = startTimeMs > 0 ? formatElapsed(Date.now() - startTimeMs) : '';
+
+		if (stateText && elapsed) {
+			return `${label} ${stateText} (${elapsed})`;
+		} else if (stateText) {
+			return `${label} ${stateText}`;
+		} else if (elapsed) {
+			return `${label} (${elapsed})`;
+		}
+		return label;
+	};
+
+	// Create spinner with real-time elapsed updates built into the render
 	const spinner = createSpinner(label, {
 		frames,
 		interval,
-		showElapsed: false, // We handle elapsed display ourselves
+		showElapsed: false, // We handle elapsed ourselves with continuous updates
 		...rest,
 	});
 
+	// Keep updating the text to show real-time elapsed
+	let textUpdateInterval: ReturnType<typeof setInterval> | null = null;
+
 	return {
 		start() {
+			startTimeMs = Date.now();
 			spinner.start();
+
+			// Update text every 100ms for smooth elapsed time display
+			textUpdateInterval = setInterval(() => {
+				spinner.update(buildText());
+			}, 100);
 		},
 
-		update(state: string, elapsedMs: number) {
-			const stateText = stateLabels[state] ?? state;
-			const elapsed = formatElapsed(elapsedMs);
-			spinner.update(`${stateText} (${elapsed})`);
+		update(state: string, _elapsedMs: number) {
+			currentState = state;
+			// Immediately update text when state changes
+			spinner.update(buildText());
 		},
 
 		succeed(elapsedMs: number, message?: string) {
+			if (textUpdateInterval) {
+				clearInterval(textUpdateInterval);
+				textUpdateInterval = null;
+			}
 			const elapsed = formatElapsed(elapsedMs);
-			spinner.succeed(message ?? `Completed in ${elapsed}`);
+			spinner.succeed(message ?? `${label} completed in ${elapsed}`);
 		},
 
 		fail(message: string) {
+			if (textUpdateInterval) {
+				clearInterval(textUpdateInterval);
+				textUpdateInterval = null;
+			}
 			spinner.fail(message);
 		},
 	};

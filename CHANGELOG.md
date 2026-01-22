@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.0] - 2026-01-22
+
+### Added
+- `spinnerManager` - coordinates spinners with logging to prevent line mixing
+- `BAR_FRAMES` - smooth braille bar animation (now the default)
+- `clearLine()` and `render()` methods on Spinner interface for log coordination
+
+### Changed
+- Console transport now pauses/resumes spinners during logging
+- Task spinner shows real-time elapsed time updates
+- Default spinner animation changed from dots to braille bar
+
+### Removed
+- `DOTS_FRAMES` and `HOURGLASS_FRAMES` exports (use `BAR_FRAMES` or `CLOCK_FRAMES`)
+
 ## [1.1.0] - 2026-01-20
 
 ### Added

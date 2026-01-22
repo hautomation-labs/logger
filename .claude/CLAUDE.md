@@ -31,6 +31,7 @@ src/
 │   └── file.ts        # fileTransport() (Node.js only)
 ├── cli/
 │   ├── spinner.ts     # createSpinner() - animated terminal spinner
+│   ├── spinner-manager.ts # spinnerManager - coordinates spinners with logging
 │   ├── progress-bar.ts # createProgressBar() - terminal progress bar
 │   ├── task-spinner.ts # createTaskSpinner() - spinner with state tracking
 │   └── elapsed.ts     # formatElapsed() - time formatting

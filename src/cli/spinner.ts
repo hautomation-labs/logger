@@ -1,16 +1,11 @@
 import { formatElapsed } from './elapsed.js';
+import { spinnerManager } from './spinner-manager.js';
 
-/** Default spinner frames - dots animation */
-const DEFAULT_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+/** Braille bar animation - smooth horizontal progress feel (default) */
+export const BAR_FRAMES = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
 
-/** Alternative spinner: hourglass */
-export const HOURGLASS_FRAMES = ['⏳', '⌛'];
-
-/** Alternative spinner: clock */
+/** Clock faces animation - visual time progression */
 export const CLOCK_FRAMES = ['🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛'];
-
-/** Alternative spinner: simple dots */
-export const DOTS_FRAMES = ['.  ', '.. ', '...', '   '];
 
 export interface SpinnerOptions {
 	/** Spinner animation frames */
@@ -40,6 +35,10 @@ export interface Spinner {
 	update(text: string): void;
 	/** Check if spinner is currently running */
 	isSpinning(): boolean;
+	/** Clear the current line (for log coordination) */
+	clearLine(): void;
+	/** Render the spinner (for log coordination) */
+	render(): void;
 }
 
 /**
@@ -54,12 +53,13 @@ export interface Spinner {
  * spinner.succeed('Done!');
  */
 export function createSpinner(initialText: string, options: SpinnerOptions = {}): Spinner {
-	const { frames = DEFAULT_FRAMES, interval = 80, stream = process.stdout, showElapsed = true } = options;
+	const { frames = BAR_FRAMES, interval = 80, stream = process.stdout, showElapsed = true } = options;
 
 	let text = initialText;
 	let frameIndex = 0;
 	let intervalId: ReturnType<typeof setInterval> | null = null;
 	let startTime: number | null = null;
+	let managerId: symbol | null = null;
 	const isTTY = stream.isTTY ?? false;
 
 	const clearLine = () => {
@@ -89,6 +89,12 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 			intervalId = null;
 		}
 
+		// Unregister from manager
+		if (managerId) {
+			spinnerManager.unregister(managerId);
+			managerId = null;
+		}
+
 		const elapsed = startTime ? Date.now() - startTime : 0;
 		const displayText = finalText ?? text;
 
@@ -101,12 +107,20 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 
 		stream.write(line + '\n');
 		startTime = null;
+
+		// Show cursor again
+		if (isTTY) {
+			stream.write('\x1B[?25h');
+		}
 	};
 
-	return {
+	const spinner: Spinner = {
 		start(newText?: string) {
 			if (newText) text = newText;
 			startTime = Date.now();
+
+			// Register with manager
+			managerId = spinnerManager.register(spinner);
 
 			if (isTTY) {
 				// Hide cursor for cleaner animation
@@ -124,6 +138,13 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 				clearInterval(intervalId);
 				intervalId = null;
 			}
+
+			// Unregister from manager
+			if (managerId) {
+				spinnerManager.unregister(managerId);
+				managerId = null;
+			}
+
 			clearLine();
 			// Show cursor again
 			if (isTTY) {
@@ -133,27 +154,26 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		},
 
 		succeed(finalText?: string) {
-			if (isTTY) stream.write('\x1B[?25h');
 			stopWithSymbol('✓', finalText);
 		},
 
 		fail(finalText?: string) {
-			if (isTTY) stream.write('\x1B[?25h');
 			stopWithSymbol('✗', finalText);
 		},
 
 		warn(finalText?: string) {
-			if (isTTY) stream.write('\x1B[?25h');
 			stopWithSymbol('⚠', finalText);
 		},
 
 		info(finalText?: string) {
-			if (isTTY) stream.write('\x1B[?25h');
 			stopWithSymbol('ℹ', finalText);
 		},
 
 		update(newText: string) {
 			text = newText;
+			if (managerId) {
+				spinnerManager.updateText(managerId, text);
+			}
 			if (!isTTY && intervalId === null) {
 				// Non-TTY: log updates as new lines
 				stream.write(`... ${text}\n`);
@@ -163,5 +183,17 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		isSpinning() {
 			return intervalId !== null;
 		},
+
+		clearLine() {
+			clearLine();
+		},
+
+		render() {
+			if (intervalId !== null) {
+				render();
+			}
+		},
 	};
+
+	return spinner;
 }

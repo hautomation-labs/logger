@@ -1,3 +1,4 @@
+import { spinnerManager } from '../cli/spinner-manager.js';
 import { getConfig } from '../config.js';
 import { formatData, formatJson, formatPretty } from '../formatters.js';
 import type { LogEntry, LogTransport } from '../types.js';
@@ -21,17 +22,27 @@ export function consoleTransport(options?: ConsoleTransportOptions): LogTranspor
 							? console.debug
 							: console.log;
 
-			if (format === OutputFormat.JSON) {
-				consoleFn(formatJson(entry));
-				return;
+			// Pause any active spinners before logging to prevent line mixing
+			const hadSpinners = spinnerManager.hasActiveSpinners();
+			if (hadSpinners) {
+				spinnerManager.pause();
 			}
 
-			const output = formatPretty(entry);
-			const dataStr = formatData(entry.data);
-			if (dataStr) {
-				consoleFn(output, dataStr);
+			if (format === OutputFormat.JSON) {
+				consoleFn(formatJson(entry));
 			} else {
-				consoleFn(output);
+				const output = formatPretty(entry);
+				const dataStr = formatData(entry.data);
+				if (dataStr) {
+					consoleFn(output, dataStr);
+				} else {
+					consoleFn(output);
+				}
+			}
+
+			// Resume spinners after logging
+			if (hadSpinners) {
+				spinnerManager.resume();
 			}
 		},
 	};

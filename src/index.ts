@@ -17,16 +17,16 @@ export { OutputFormat, TimestampFormat } from './types.js';
 
 // CLI utilities
 export {
+	BAR_FRAMES,
 	CLOCK_FRAMES,
 	createProgressBar,
 	createSpinner,
 	createTaskSpinner,
-	DOTS_FRAMES,
 	formatElapsed,
-	HOURGLASS_FRAMES,
 	type ProgressBar,
 	type ProgressBarOptions,
 	type Spinner,
+	spinnerManager,
 	type SpinnerOptions,
 	type TaskSpinner,
 	type TaskSpinnerOptions,

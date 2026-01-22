@@ -1,12 +1,14 @@
 // Spinner
 export {
+	BAR_FRAMES,
 	CLOCK_FRAMES,
 	createSpinner,
-	DOTS_FRAMES,
-	HOURGLASS_FRAMES,
 	type Spinner,
 	type SpinnerOptions,
 } from './spinner.js';
+
+// Spinner manager (for log coordination)
+export { spinnerManager } from './spinner-manager.js';
 
 // Task spinner (higher-level with state tracking)
 export { createTaskSpinner, type TaskSpinner, type TaskSpinnerOptions } from './task-spinner.js';
