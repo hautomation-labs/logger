@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0] - 2026-01-25
+
+### Added
+- `multiLineCount` option on `createSpinner()` for proper multi-line text clearing
+- `multiLine` option on `createTaskSpinner()` for tree-style two-line display format
+- `startTimeMs` option on `createTaskSpinner()` for external start time (useful for resume scenarios)
+
 ## [1.2.0] - 2026-01-22
 
 ### Added
