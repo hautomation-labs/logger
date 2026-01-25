@@ -1,11 +1,5 @@
 // Spinner
-export {
-	BAR_FRAMES,
-	CLOCK_FRAMES,
-	createSpinner,
-	type Spinner,
-	type SpinnerOptions,
-} from './spinner.js';
+export { BAR_FRAMES, CLOCK_FRAMES, createSpinner, type Spinner, type SpinnerOptions } from './spinner.js';
 
 // Spinner manager (for log coordination)
 export { spinnerManager } from './spinner-manager.js';

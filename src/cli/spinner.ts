@@ -16,6 +16,8 @@ export interface SpinnerOptions {
 	stream?: NodeJS.WriteStream;
 	/** Show elapsed time (default: true) */
 	showElapsed?: boolean;
+	/** Number of lines the spinner text occupies (default: 1). Used for proper clearing. */
+	multiLineCount?: number;
 }
 
 export interface Spinner {
@@ -53,7 +55,13 @@ export interface Spinner {
  * spinner.succeed('Done!');
  */
 export function createSpinner(initialText: string, options: SpinnerOptions = {}): Spinner {
-	const { frames = BAR_FRAMES, interval = 80, stream = process.stdout, showElapsed = true } = options;
+	const {
+		frames = BAR_FRAMES,
+		interval = 80,
+		stream = process.stdout,
+		showElapsed = true,
+		multiLineCount = 1,
+	} = options;
 
 	let text = initialText;
 	let frameIndex = 0;
@@ -62,9 +70,23 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 	let managerId: symbol | null = null;
 	const isTTY = stream.isTTY ?? false;
 
-	const clearLine = () => {
-		if (isTTY) {
+	// Track actual line count for dynamic multi-line text
+	let currentLineCount = multiLineCount;
+
+	const clearLines = (lineCount: number) => {
+		if (!isTTY) return;
+
+		if (lineCount === 1) {
+			// Single line: just clear current line
 			stream.write('\r\x1B[K');
+		} else {
+			// Multi-line: move up and clear each line
+			// First, clear current line
+			stream.write('\r\x1B[K');
+			// Then move up and clear each previous line
+			for (let i = 1; i < lineCount; i++) {
+				stream.write('\x1B[1A\x1B[K'); // Move up 1, clear line
+			}
 		}
 	};
 
@@ -79,7 +101,13 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 			line += ` (${formatElapsed(Date.now() - startTime)})`;
 		}
 
-		clearLine();
+		// Count actual lines in the text
+		const newLineCount = (line.match(/\n/g) || []).length + 1;
+
+		// Clear previous render (use the larger of old/new line count)
+		clearLines(Math.max(currentLineCount, newLineCount));
+		currentLineCount = newLineCount;
+
 		stream.write(line);
 	};
 
@@ -98,7 +126,8 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		const elapsed = startTime ? Date.now() - startTime : 0;
 		const displayText = finalText ?? text;
 
-		clearLine();
+		// Clear all lines used by the spinner
+		clearLines(currentLineCount);
 
 		let line = `${symbol} ${displayText}`;
 		if (showElapsed && elapsed > 0) {
@@ -107,6 +136,7 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 
 		stream.write(line + '\n');
 		startTime = null;
+		currentLineCount = 1; // Reset for next use
 
 		// Show cursor again
 		if (isTTY) {
@@ -145,7 +175,8 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 				managerId = null;
 			}
 
-			clearLine();
+			clearLines(currentLineCount);
+			currentLineCount = 1; // Reset for next use
 			// Show cursor again
 			if (isTTY) {
 				stream.write('\x1B[?25h');
@@ -185,7 +216,7 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		},
 
 		clearLine() {
-			clearLine();
+			clearLines(currentLineCount);
 		},
 
 		render() {
