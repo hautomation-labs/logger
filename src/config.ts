@@ -10,8 +10,18 @@ interface ResolvedConfig {
 	transports: LogTransport[] | null;
 }
 
+const VALID_LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
+
+function getDefaultMinLevel(): LogLevel {
+	const envLevel = process.env.LOG_LEVEL?.toLowerCase();
+	if (envLevel && VALID_LEVELS.includes(envLevel as LogLevel)) {
+		return envLevel as LogLevel;
+	}
+	return 'info';
+}
+
 const defaults: ResolvedConfig = {
-	minLevel: 'debug',
+	minLevel: getDefaultMinLevel(),
 	enabled: true,
 	format: OutputFormat.PRETTY,
 	timestampFormat: TimestampFormat.TIME_ONLY,

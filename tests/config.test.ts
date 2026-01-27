@@ -20,7 +20,7 @@ describe('configure', () => {
 	it('resetConfig restores defaults', () => {
 		configure({ minLevel: 'fatal', showEmoji: false });
 		resetConfig();
-		expect(getConfig().minLevel).toBe('debug');
+		expect(getConfig().minLevel).toBe('info');
 		expect(getConfig().showEmoji).toBe(true);
 	});
 });

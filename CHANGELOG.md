@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-01-27
+
+### Added
+- `LOG_LEVEL` environment variable support for setting default minimum log level
+
+### Changed
+- Default minimum log level changed from `debug` to `info`
+
 ## [1.3.0] - 2026-01-25
 
 ### Added
