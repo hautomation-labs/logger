@@ -71,6 +71,9 @@ export interface TaskSpinner {
 	 * @param message - Error message to display
 	 */
 	fail(message: string): void;
+
+	/** Stop the spinner without a success/failure symbol. Use in error cleanup paths. */
+	stop(): void;
 }
 
 /**
@@ -120,13 +123,26 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 
 	let currentState = '';
 	let startTimeMs = externalStartTimeMs ?? 0;
+	// Sync-based elapsed: when update() provides elapsedMs from the polling loop,
+	// we record the sync point and interpolate smoothly between updates.
+	let syncTimeMs = 0;
+	let syncElapsedMs = 0;
+	let hasSynced = false;
 	const stream = rest.stream ?? process.stdout;
 	const isTTY = stream.isTTY ?? false;
 
 	// Build display text with current state and real-time elapsed
 	const buildText = (): string => {
 		const stateText = currentState ? (stateLabels[currentState] ?? currentState) : '';
-		const elapsed = startTimeMs > 0 ? formatElapsed(Date.now() - startTimeMs) : '';
+
+		let elapsed = '';
+		if (hasSynced) {
+			// After first update(): interpolate from the last sync point
+			elapsed = formatElapsed(syncElapsedMs + (Date.now() - syncTimeMs));
+		} else if (startTimeMs > 0) {
+			// Before first update(): use external/start time
+			elapsed = formatElapsed(Date.now() - startTimeMs);
+		}
 
 		if (multiLine) {
 			// Multi-line format: label on first line, state on second with tree char
@@ -177,8 +193,20 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 			}, 100);
 		},
 
-		update(state: string, _elapsedMs: number) {
+		update(state: string, elapsedMs: number) {
 			currentState = state;
+			// Sync elapsed time from the polling loop's ground truth.
+			// The 100ms text interval interpolates smoothly between these sync points.
+			const now = Date.now();
+			// Clamp: never allow the displayed elapsed to jump backward
+			const currentProjection = hasSynced
+				? syncElapsedMs + (now - syncTimeMs)
+				: startTimeMs > 0
+					? now - startTimeMs
+					: 0;
+			syncTimeMs = now;
+			syncElapsedMs = Math.max(elapsedMs, currentProjection);
+			hasSynced = true;
 			// Immediately update text when state changes
 			spinner.update(buildText());
 		},
@@ -211,6 +239,14 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 			} else {
 				spinner.fail(message);
 			}
+		},
+
+		stop() {
+			if (textUpdateInterval) {
+				clearInterval(textUpdateInterval);
+				textUpdateInterval = null;
+			}
+			spinner.stop();
 		},
 	};
 }

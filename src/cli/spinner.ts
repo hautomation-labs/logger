@@ -72,6 +72,10 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 
 	// Track actual line count for dynamic multi-line text
 	let currentLineCount = multiLineCount;
+	// When true, render clears its previous output before writing.
+	// Set to false by clearLine() (called during spinner manager pause)
+	// so the next render writes fresh without clearing external content above.
+	let needsClear = true;
 
 	const clearLines = (lineCount: number) => {
 		if (!isTTY) return;
@@ -104,8 +108,13 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		// Count actual lines in the text
 		const newLineCount = (line.match(/\n/g) || []).length + 1;
 
-		// Clear previous render (use the larger of old/new line count)
-		clearLines(Math.max(currentLineCount, newLineCount));
+		// Only clear previous output if we own the lines above the cursor.
+		// After clearLine() (called by spinner manager pause), needsClear is false
+		// because external content (log messages) may have been written above us.
+		if (needsClear) {
+			clearLines(Math.max(currentLineCount, newLineCount));
+		}
+		needsClear = true;
 		currentLineCount = newLineCount;
 
 		stream.write(line);
@@ -126,8 +135,13 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		const elapsed = startTime ? Date.now() - startTime : 0;
 		const displayText = finalText ?? text;
 
-		// Clear all lines used by the spinner
-		clearLines(currentLineCount);
+		// Only clear if we own the lines above the cursor.
+		// After clearLine() (e.g., spinner manager pause), external content
+		// may have been written above us — clearing would destroy it.
+		if (needsClear) {
+			clearLines(currentLineCount);
+		}
+		needsClear = true;
 
 		let line = `${symbol} ${displayText}`;
 		if (showElapsed && elapsed > 0) {
@@ -175,7 +189,11 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 				managerId = null;
 			}
 
-			clearLines(currentLineCount);
+			// Only clear if we own the lines above the cursor
+			if (needsClear) {
+				clearLines(currentLineCount);
+			}
+			needsClear = true;
 			currentLineCount = 1; // Reset for next use
 			// Show cursor again
 			if (isTTY) {
@@ -217,6 +235,11 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 
 		clearLine() {
 			clearLines(currentLineCount);
+			currentLineCount = 0; // Lines have been cleared, we own nothing on screen
+			// After being cleared externally (e.g., by spinner manager pause),
+			// the next render should write fresh without clearing above the cursor,
+			// since log messages may have been written there.
+			needsClear = false;
 		},
 
 		render() {
