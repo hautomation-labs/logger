@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.2] - 2026-03-01
+
+### Fixed
+- Spinner `stop()`/`succeed()`/`fail()` no longer clobber log messages written during spinner manager pause
+- `clearLine()` is now idempotent (resets `currentLineCount` to prevent clearing lines it doesn't own)
+- Task spinner elapsed time no longer jumps backward when polling source reports smaller elapsed than interpolation
+
+### Added
+- `stop()` method on `TaskSpinner` interface for safe cleanup in error paths (prevents interval leaks)
+
 ## [1.3.1] - 2026-01-27
 
 ### Added
