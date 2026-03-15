@@ -181,8 +181,11 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		}
 	};
 
+	const safeInterval = Number.isFinite(interval) && interval > 0 ? Math.max(16, interval) : 80;
+
 	const spinner: Spinner = {
 		start(newText?: string) {
+			if (intervalId !== null) return; // already spinning, ignore duplicate start
 			if (newText) text = newText;
 			startTime = Date.now();
 
@@ -193,7 +196,7 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 				// Hide cursor for cleaner animation
 				stream.write('\x1B[?25l');
 				render();
-				intervalId = setInterval(render, interval);
+				intervalId = setInterval(render, safeInterval);
 			} else {
 				// Non-TTY: just log the initial text
 				stream.write(`... ${text}\n`);
