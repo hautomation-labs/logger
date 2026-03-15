@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.3] - 2026-03-15
+
+### Fixed
+- Spinner `start()` now ignores duplicate calls when already spinning, preventing cursor leak and orphaned manager registrations
+- Spinner `frames` option now throws immediately on empty array instead of silently rendering `undefined` frames
+- Spinner `interval` option is now clamped to a minimum of 16ms and guards against `NaN`/`Infinity` to prevent event loop saturation
+
 ## [1.3.2] - 2026-03-01
 
 ### Fixed
