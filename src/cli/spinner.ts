@@ -63,6 +63,10 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		multiLineCount = 1,
 	} = options;
 
+	if (frames.length === 0) {
+		throw new Error('createSpinner: frames must be a non-empty array');
+	}
+
 	let text = initialText;
 	let frameIndex = 0;
 	let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -70,12 +74,31 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 	let managerId: symbol | null = null;
 	const isTTY = stream.isTTY ?? false;
 
-	// Track actual line count for dynamic multi-line text
-	let currentLineCount = multiLineCount;
+	// Track actual visual line count for proper clearing (accounts for terminal wrapping)
+	let currentVisualLineCount = multiLineCount;
 	// When true, render clears its previous output before writing.
 	// Set to false by clearLine() (called during spinner manager pause)
 	// so the next render writes fresh without clearing external content above.
 	let needsClear = true;
+
+	/** Strip ANSI escape codes for accurate visual width calculation */
+	// eslint-disable-next-line no-control-regex
+	const stripAnsi = (str: string): string => str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+
+	/**
+	 * Count visual lines a string occupies in the terminal,
+	 * accounting for line wrapping when text exceeds terminal width.
+	 */
+	const getVisualLineCount = (str: string): number => {
+		const columns = stream.columns || 80;
+		const logicalLines = str.split('\n');
+		let total = 0;
+		for (const line of logicalLines) {
+			const width = stripAnsi(line).length;
+			total += Math.max(1, Math.ceil(width / columns));
+		}
+		return total;
+	};
 
 	const clearLines = (lineCount: number) => {
 		if (!isTTY) return;
@@ -105,17 +128,17 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 			line += ` (${formatElapsed(Date.now() - startTime)})`;
 		}
 
-		// Count actual lines in the text
-		const newLineCount = (line.match(/\n/g) || []).length + 1;
+		// Count visual lines accounting for terminal width wrapping
+		const newVisualLineCount = getVisualLineCount(line);
 
 		// Only clear previous output if we own the lines above the cursor.
 		// After clearLine() (called by spinner manager pause), needsClear is false
 		// because external content (log messages) may have been written above us.
 		if (needsClear) {
-			clearLines(Math.max(currentLineCount, newLineCount));
+			clearLines(Math.max(currentVisualLineCount, newVisualLineCount));
 		}
 		needsClear = true;
-		currentLineCount = newLineCount;
+		currentVisualLineCount = newVisualLineCount;
 
 		stream.write(line);
 	};
@@ -139,7 +162,7 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		// After clearLine() (e.g., spinner manager pause), external content
 		// may have been written above us — clearing would destroy it.
 		if (needsClear) {
-			clearLines(currentLineCount);
+			clearLines(currentVisualLineCount);
 		}
 		needsClear = true;
 
@@ -150,7 +173,7 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 
 		stream.write(line + '\n');
 		startTime = null;
-		currentLineCount = 1; // Reset for next use
+		currentVisualLineCount = 1; // Reset for next use
 
 		// Show cursor again
 		if (isTTY) {
@@ -191,10 +214,10 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 
 			// Only clear if we own the lines above the cursor
 			if (needsClear) {
-				clearLines(currentLineCount);
+				clearLines(currentVisualLineCount);
 			}
 			needsClear = true;
-			currentLineCount = 1; // Reset for next use
+			currentVisualLineCount = 1; // Reset for next use
 			// Show cursor again
 			if (isTTY) {
 				stream.write('\x1B[?25h');
@@ -234,8 +257,8 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 		},
 
 		clearLine() {
-			clearLines(currentLineCount);
-			currentLineCount = 0; // Lines have been cleared, we own nothing on screen
+			clearLines(currentVisualLineCount);
+			currentVisualLineCount = 0; // Lines have been cleared, we own nothing on screen
 			// After being cleared externally (e.g., by spinner manager pause),
 			// the next render should write fresh without clearing above the cursor,
 			// since log messages may have been written there.
