@@ -183,7 +183,7 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 
 	return {
 		start() {
-			if (textUpdateInterval !== null || spinner.isSpinning()) return;
+			if (isStarted) return;
 			if (!externalStartTimeMs) {
 				startTimeMs = Date.now();
 			}
