@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.3.4] - 2026-03-24
+
+### Fixed
+- `SpinnerManager.resume()` no longer leaves `isPaused` stuck `true` when all spinners stop during a pause window
+- `stopWithSymbol` guards against double-stop, preventing terminal line corruption after a spinner is already stopped
+- `createTaskSpinner` text-update interval no longer floods output in non-TTY mode (CI, pipes)
+- `createProgressBar` validates `total > 0` at construction instead of crashing with `RangeError` on first render
+- `onBeforeWrite` hooks moved inside `try` block so `onAfterWrite` always fires, even if `onBeforeWrite` throws
+- `fileTransport` errors now include the file path for easier debugging with multiple transports
+
+### Changed
+- Default transport ownership moved from `logger.ts` to dedicated `default-transport.ts`, eliminating the circular dependency registry
+- `createLogger` no longer imports the CLI spinner subsystem directly, improving tree-shaking for non-CLI consumers
+- `configure()` uses explicit per-field assignment instead of dynamic `Object.entries` loop
+- `fileTransport` uses static `import fs` instead of runtime `require('fs')` with `isNode()` guard
+
+### Added
+- `onBeforeWrite`/`onAfterWrite` callback hooks on `consoleTransport` and `createProgressBar` for external coordination
+- `ConsoleTransportOptions` and `FileTransportOptions` exported from package root
+- `SpinnerManager.reset()` method for test isolation
+- `formatElapsed` handles `ms <= 0` and sub-second values with `< 1s` display
+- `setInterval.unref()` on spinner and task-spinner intervals so Node.js can exit naturally
+
 ## [1.3.3] - 2026-03-15
 
 ### Fixed
