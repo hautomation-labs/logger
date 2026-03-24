@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.5] - 2026-03-24
+
+### Fixed
+- `createTaskSpinner` `start()` guard now uses `isStarted` flag, preventing double-start state corruption in non-TTY mode
+
 ## [1.3.4] - 2026-03-24
 
 ### Fixed
