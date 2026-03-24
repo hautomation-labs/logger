@@ -1,4 +1,3 @@
-import { spinnerManager } from '../cli/spinner-manager.js';
 import { getConfig } from '../config.js';
 import { formatData, formatJson, formatPretty } from '../formatters.js';
 import type { LogEntry, LogTransport } from '../types.js';
@@ -6,6 +5,16 @@ import { OutputFormat } from '../types.js';
 
 export interface ConsoleTransportOptions {
 	format?: OutputFormat;
+	/**
+	 * Called immediately before writing a log entry to the console.
+	 * Useful for coordinating with interactive terminal UI elements.
+	 */
+	onBeforeWrite?: () => void;
+	/**
+	 * Called immediately after writing a log entry to the console.
+	 * Useful for coordinating with interactive terminal UI elements.
+	 */
+	onAfterWrite?: () => void;
 }
 
 export function consoleTransport(options?: ConsoleTransportOptions): LogTransport {
@@ -22,27 +31,21 @@ export function consoleTransport(options?: ConsoleTransportOptions): LogTranspor
 							? console.debug
 							: console.log;
 
-			// Pause any active spinners before logging to prevent line mixing
-			const hadSpinners = spinnerManager.hasActiveSpinners();
-			if (hadSpinners) {
-				spinnerManager.pause();
-			}
-
-			if (format === OutputFormat.JSON) {
-				consoleFn(formatJson(entry));
-			} else {
-				const output = formatPretty(entry);
-				const dataStr = formatData(entry.data);
-				if (dataStr) {
-					consoleFn(output, dataStr);
+			try {
+				options?.onBeforeWrite?.();
+				if (format === OutputFormat.JSON) {
+					consoleFn(formatJson(entry));
 				} else {
-					consoleFn(output);
+					const output = formatPretty(entry);
+					const dataStr = formatData(entry.data);
+					if (dataStr) {
+						consoleFn(output, dataStr);
+					} else {
+						consoleFn(output);
+					}
 				}
-			}
-
-			// Resume spinners after logging
-			if (hadSpinners) {
-				spinnerManager.resume();
+			} finally {
+				options?.onAfterWrite?.();
 			}
 		},
 	};

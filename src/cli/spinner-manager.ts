@@ -63,15 +63,14 @@ class SpinnerManager {
 	 * Call after logging
 	 */
 	resume(): void {
-		if (!this.isPaused || this.spinners.size === 0) return;
+		if (!this.isPaused) return;
+		this.isPaused = false;
 
 		for (const { spinner } of this.spinners.values()) {
 			if (spinner.isSpinning()) {
-				// Re-render the spinner
 				spinner.render();
 			}
 		}
-		this.isPaused = false;
 	}
 
 	/**
@@ -82,6 +81,15 @@ class SpinnerManager {
 			if (spinner.isSpinning()) return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Reset all state. Intended for test isolation — clears all registered
+	 * spinners and resets the paused flag so no state leaks between tests.
+	 */
+	reset(): void {
+		this.spinners.clear();
+		this.isPaused = false;
 	}
 }
 

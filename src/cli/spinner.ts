@@ -144,12 +144,14 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 	};
 
 	const stopWithSymbol = (symbol: string, finalText?: string) => {
+		// Already stopped (or never started) — don't touch the terminal.
+		if (intervalId === null && startTime === null) return;
+
 		if (intervalId) {
 			clearInterval(intervalId);
 			intervalId = null;
 		}
 
-		// Unregister from manager
 		if (managerId) {
 			spinnerManager.unregister(managerId);
 			managerId = null;
@@ -197,6 +199,9 @@ export function createSpinner(initialText: string, options: SpinnerOptions = {})
 				stream.write('\x1B[?25l');
 				render();
 				intervalId = setInterval(render, safeInterval);
+				// Allow Node.js to exit naturally even if the spinner is still active
+				// (e.g., process crashes before stop() is called)
+				intervalId.unref();
 			} else {
 				// Non-TTY: just log the initial text
 				stream.write(`... ${text}\n`);

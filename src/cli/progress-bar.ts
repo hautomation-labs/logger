@@ -15,6 +15,18 @@ export interface ProgressBarOptions {
 	showElapsed?: boolean;
 	/** Output stream (default: process.stdout) */
 	stream?: NodeJS.WriteStream;
+	/**
+	 * Called immediately before writing a progress bar update to the terminal.
+	 * Useful for coordinating with interactive terminal UI elements.
+	 * Only fires in TTY mode; has no effect in non-TTY environments.
+	 */
+	onBeforeWrite?: () => void;
+	/**
+	 * Called immediately after writing a progress bar update to the terminal.
+	 * Useful for coordinating with interactive terminal UI elements.
+	 * Only fires in TTY mode; has no effect in non-TTY environments.
+	 */
+	onAfterWrite?: () => void;
 }
 
 export interface ProgressBar {
@@ -41,6 +53,10 @@ export interface ProgressBar {
  * bar.stop('Complete!');
  */
 export function createProgressBar(options: ProgressBarOptions): ProgressBar {
+	if (!Number.isFinite(options.total) || options.total <= 0) {
+		throw new RangeError(`createProgressBar: total must be a positive finite number, got ${options.total}`);
+	}
+
 	const {
 		total,
 		width = 30,
@@ -49,6 +65,8 @@ export function createProgressBar(options: ProgressBarOptions): ProgressBar {
 		showCount = true,
 		showElapsed = true,
 		stream = process.stdout,
+		onBeforeWrite,
+		onAfterWrite,
 	} = options;
 
 	let current = 0;
@@ -85,8 +103,13 @@ export function createProgressBar(options: ProgressBarOptions): ProgressBar {
 		}
 
 		if (isTTY) {
-			clearLine();
-			stream.write(line);
+			try {
+				onBeforeWrite?.();
+				clearLine();
+				stream.write(line);
+			} finally {
+				onAfterWrite?.();
+			}
 		} else {
 			// Non-TTY: log at 0%, 10%, 20%, ..., 100%
 			if (percent >= lastLoggedPercent + 10 || current === total) {
@@ -111,10 +134,15 @@ export function createProgressBar(options: ProgressBarOptions): ProgressBar {
 
 		stop(finalText?: string) {
 			if (isTTY) {
-				clearLine();
-				const elapsed = formatElapsed(Date.now() - startTime);
-				const displayText = finalText ?? `Completed ${total} items`;
-				stream.write(`✓ ${displayText} (${elapsed})\n`);
+				try {
+					onBeforeWrite?.();
+					clearLine();
+					const elapsed = formatElapsed(Date.now() - startTime);
+					const displayText = finalText ?? `Completed ${total} items`;
+					stream.write(`✓ ${displayText} (${elapsed})\n`);
+				} finally {
+					onAfterWrite?.();
+				}
 			} else if (finalText) {
 				stream.write(`✓ ${finalText}\n`);
 			}

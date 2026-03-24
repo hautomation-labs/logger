@@ -6,6 +6,7 @@ export { createLogger } from './logger.js';
 export { extractErrorMessage } from './extract-message.js';
 
 // Transports
+export type { ConsoleTransportOptions, FileTransportOptions } from './transports/index.js';
 export { consoleTransport, fileTransport } from './transports/index.js';
 
 // Formatters (for custom transports)

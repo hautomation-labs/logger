@@ -15,7 +15,7 @@
 import { formatElapsed } from './elapsed.js';
 import { BAR_FRAMES, createSpinner, type SpinnerOptions } from './spinner.js';
 
-export interface TaskSpinnerOptions extends Omit<SpinnerOptions, 'showElapsed'> {
+export interface TaskSpinnerOptions extends Omit<SpinnerOptions, 'showElapsed' | 'multiLineCount'> {
 	/**
 	 * Mapping of state strings to display labels
 	 * If a state is not in the map, the raw state string is used
@@ -121,6 +121,7 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 		...rest
 	} = options;
 
+	let isStarted = false;
 	let currentState = '';
 	let startTimeMs = externalStartTimeMs ?? 0;
 	// Sync-based elapsed: when update() provides elapsedMs from the polling loop,
@@ -182,15 +183,26 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 
 	return {
 		start() {
+			if (textUpdateInterval !== null || spinner.isSpinning()) return;
 			if (!externalStartTimeMs) {
 				startTimeMs = Date.now();
 			}
+			currentState = '';
+			hasSynced = false;
+			syncTimeMs = 0;
+			syncElapsedMs = 0;
+			isStarted = true;
 			spinner.start();
 
-			// Update text every 100ms for smooth elapsed time display
-			textUpdateInterval = setInterval(() => {
-				spinner.update(buildText());
-			}, 100);
+			// Smooth elapsed-time updates only matter when rewriting the same line.
+			// In non-TTY mode (CI, pipes), spinner.update() emits a new line on
+			// every call — running at 100ms would flood the output.
+			if (isTTY) {
+				textUpdateInterval = setInterval(() => {
+					spinner.update(buildText());
+				}, 100);
+				textUpdateInterval.unref();
+			}
 		},
 
 		update(state: string, elapsedMs: number) {
@@ -212,6 +224,8 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 		},
 
 		succeed(elapsedMs: number, message?: string) {
+			if (!isStarted) return;
+			isStarted = false;
 			if (textUpdateInterval) {
 				clearInterval(textUpdateInterval);
 				textUpdateInterval = null;
@@ -229,6 +243,8 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 		},
 
 		fail(message: string) {
+			if (!isStarted) return;
+			isStarted = false;
 			if (textUpdateInterval) {
 				clearInterval(textUpdateInterval);
 				textUpdateInterval = null;
@@ -242,6 +258,8 @@ export function createTaskSpinner(label: string, options: TaskSpinnerOptions = {
 		},
 
 		stop() {
+			if (!isStarted) return;
+			isStarted = false;
 			if (textUpdateInterval) {
 				clearInterval(textUpdateInterval);
 				textUpdateInterval = null;

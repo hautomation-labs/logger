@@ -1,15 +1,8 @@
-import { consoleTransport } from './transports/console.js';
 import { getConfig } from './config.js';
+import { getDefaultTransport } from './default-transport.js';
 import { formatTimestamp } from './formatters.js';
 import type { CreateLoggerOptions, LogEntry, Logger, LogLevel } from './types.js';
 import { LEVEL_EMOJIS, LEVEL_PRIORITY } from './types.js';
-
-let defaultTransport: ReturnType<typeof consoleTransport> | null = null;
-
-function getDefaultTransport() {
-	if (!defaultTransport) defaultTransport = consoleTransport();
-	return defaultTransport;
-}
 
 /**
  * Create a logger instance with optional source name and custom emoji.
@@ -52,6 +45,8 @@ export function createLogger(options: CreateLoggerOptions = {}): Logger {
 			try {
 				transport.write(entry);
 			} catch (err) {
+				// Last-resort fallback: a logging library cannot log transport failures
+				// through itself without risking infinite recursion.
 				console.error('Logger transport error:', err);
 			}
 		}

@@ -1,3 +1,4 @@
+import { resetDefaultTransport } from './default-transport.js';
 import type { LoggerConfig, LogLevel, LogTransport } from './types.js';
 import { OutputFormat, TimestampFormat } from './types.js';
 
@@ -32,11 +33,12 @@ const defaults: ResolvedConfig = {
 let globalConfig: ResolvedConfig = { ...defaults };
 
 export function configure(config: LoggerConfig): void {
-	Object.entries(config).forEach(([key, value]) => {
-		if (value !== undefined) {
-			(globalConfig as unknown as Record<string, unknown>)[key] = value;
-		}
-	});
+	if (config.minLevel !== undefined) globalConfig.minLevel = config.minLevel;
+	if (config.enabled !== undefined) globalConfig.enabled = config.enabled;
+	if (config.format !== undefined) globalConfig.format = config.format;
+	if (config.timestampFormat !== undefined) globalConfig.timestampFormat = config.timestampFormat;
+	if (config.showEmoji !== undefined) globalConfig.showEmoji = config.showEmoji;
+	if (config.transports !== undefined) globalConfig.transports = config.transports;
 }
 
 export function getConfig(): Readonly<ResolvedConfig> {
@@ -44,5 +46,6 @@ export function getConfig(): Readonly<ResolvedConfig> {
 }
 
 export function resetConfig(): void {
-	globalConfig = { ...defaults };
+	globalConfig = { ...defaults, minLevel: getDefaultMinLevel() };
+	resetDefaultTransport();
 }
